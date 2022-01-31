@@ -12,7 +12,7 @@ Requirements:
 """
 
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 __author__ = 'fsmosca'
 __script_name__ = 'rating_correlations'
 __about__ = 'A streamlit web app to estimate rating as target based on other rating as feature.'
@@ -29,10 +29,6 @@ from math import sqrt
 import statsmodels.api as sm
 import shap
 import numpy as np
-
-
-plt.rc("figure", figsize=(12, 6))
-plt.rc("font", size=8)
 
 
 st.set_page_config(
