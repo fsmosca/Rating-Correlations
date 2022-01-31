@@ -12,7 +12,7 @@ Requirements:
 """
 
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 __author__ = 'fsmosca'
 __script_name__ = 'rating_correlations'
 __about__ = 'A streamlit web app to estimate rating as target based on other rating as feature.'
@@ -90,7 +90,9 @@ def shap_plot(df, target: str):
         & (df['blitzgames'] >= mingames)
         & (df['blitzrating'] >= minratings)
         & (df['rapidgames'] >= mingames)
-        & (df['rapidrating'] >= minratings)       
+        & (df['rapidrating'] >= minratings)
+        & (df['classicalgames'] >= mingames)
+        & (df['classicalrating'] >= minratings)
         & (df[f'{gt}games'] >= mingames)
         & (df[f'{gt}rating'] >= minratings)
     ]
