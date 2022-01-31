@@ -106,9 +106,9 @@ def shap_plot(df, target: str):
     y = target
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=1)
 
-    reg = xg.XGBRegressor(objective ='reg:squarederror', booster='gbtree', n_estimators = 10000, seed = 123, n_jobs=1)
-    reg.fit(X_train, y_train, eval_set=[(X_test, y_test)], early_stopping_rounds=100, verbose=False)
-    y_pred = reg.predict(X_test)
+    model = xg.XGBRegressor(objective ='reg:squarederror', booster='gbtree', n_estimators = 10000, seed = 123, n_jobs=1)
+    model.fit(X_train, y_train, eval_set=[(X_test, y_test)], early_stopping_rounds=100, verbose=False)
+    y_pred = model.predict(X_test)
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
 
     st.markdown(f'''
@@ -121,7 +121,7 @@ def shap_plot(df, target: str):
     ''')
 
     fig, ax = plt.subplots()
-    shap_values_test = shap.TreeExplainer(reg).shap_values(X_test)
+    shap_values_test = shap.TreeExplainer(model).shap_values(X_test)
     shap.summary_plot(shap_values_test, X_test, show=False, plot_size=(8, 4))
     buf = BytesIO()
     fig.savefig(buf, format="png", bbox_inches='tight', dpi=80)
@@ -245,23 +245,23 @@ def main():
     X_test = rX_test.copy()
     y_test = ry_test.copy()
 
-    res = None
+    statsmodels_result, xgboost_model = None, None
     if reg_type == 'xgboost':
-        reg = xg.XGBRegressor(objective ='reg:squarederror', booster='gblinear', n_estimators = 10000, seed = 123, n_jobs=1)
-        reg.fit(X_train, y_train, eval_set=[(X_test, y_test)], early_stopping_rounds=100, verbose=False)
-        y_pred = reg.predict(X_test)
+        xgboost_model = xg.XGBRegressor(objective ='reg:squarederror', booster='gblinear', n_estimators = 10000, seed = 123, n_jobs=1)
+        xgboost_model.fit(X_train, y_train, eval_set=[(X_test, y_test)], early_stopping_rounds=100, verbose=False)
+        y_pred = xgboost_model.predict(X_test)
     elif reg_type == 'statsmodels':
         X_train = sm.add_constant(X_train)
-        mod = sm.OLS(y_train, X_train)
-        res = mod.fit()
+        stasmodels_model = sm.OLS(y_train, X_train)
+        statsmodels_result = stasmodels_model.fit()
 
-        dfres = res.params
+        dfres = statsmodels_result.params
         dfres = dfres.reset_index()
         coeff = dict(dfres.values)  # keys = const, feature1, ...
 
         X_test_tmp = X_test.copy()
         X_test_tmp = sm.add_constant(X_test_tmp)
-        y_pred = res.predict(X_test_tmp)
+        y_pred = statsmodels_result.predict(X_test_tmp)
 
     rmse = sqrt(mean_squared_error(y_test, y_pred))
 
@@ -327,10 +327,10 @@ def main():
             if 'classicalrating' in multi_features:
                 target_rating += st.session_state.classicalrating * coeff['classicalrating']
         elif reg_type == 'xgboost':
-            target_rating = reg.intercept_[0]
+            target_rating = xgboost_model.intercept_[0]
             for i, f in enumerate(multi_features):
                 gt = f.split('rating')[0]  # bullet, blitz ...
-                target_rating += st.session_state[f'{gt}rating'] * reg.coef_[i]
+                target_rating += st.session_state[f'{gt}rating'] * xgboost_model.coef_[i]
 
         pred_interval = round(1.96*rmse)
         st.text_input(
@@ -345,7 +345,7 @@ def main():
             isbullet = False
             if 'bulletrating' in multi_features:
                 isbullet = True
-                fig = sm.graphics.plot_regress_exog(res, "bulletrating")
+                fig = sm.graphics.plot_regress_exog(statsmodels_result, "bulletrating")
                 fig.tight_layout(pad=1.0)
                 buf = BytesIO()
                 fig.savefig(buf, format="png")
@@ -356,7 +356,7 @@ def main():
                 isblitz = True
                 if isbullet:
                     st.markdown(''' --- ''')
-                fig = sm.graphics.plot_regress_exog(res, "blitzrating")
+                fig = sm.graphics.plot_regress_exog(statsmodels_result, "blitzrating")
                 fig.tight_layout(pad=1.0)
                 buf = BytesIO()
                 fig.savefig(buf, format="png")
@@ -365,7 +365,7 @@ def main():
             if 'rapidrating' in multi_features:
                 if isblitz:
                     st.markdown(''' --- ''')
-                fig = sm.graphics.plot_regress_exog(res, "rapidrating")
+                fig = sm.graphics.plot_regress_exog(statsmodels_result, "rapidrating")
                 fig.tight_layout(pad=1.0)
                 buf = BytesIO()
                 fig.savefig(buf, format="png")
@@ -373,7 +373,7 @@ def main():
 
     with st.expander("REGRESSION RESULT"):
         if reg_type == 'statsmodels':
-            st.write(res.summary())
+            st.write(statsmodels_result.summary())
 
     with st.expander('All FEATURE SHAP PLOT'):
         tt = 'chess960rating'
