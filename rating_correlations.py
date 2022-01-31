@@ -39,6 +39,7 @@ st.set_page_config(
     page_title="Rating Correlations",
     layout="wide",
     initial_sidebar_state="expanded",
+    menu_items={'about': f'Rating Correlations v{__version__}'}
 )
 
 
