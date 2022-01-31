@@ -1,6 +1,6 @@
 """
-A streamlit web app to estimate rating as target like Lichess chess960 based on other
-Lichess ratings like bullet and blitz as features.
+A streamlit web app to estimate rating as target like Lichess or Chess.com chess960
+based on other rating type like bullet and blitz as features.
 
 Requirements:
     streamlit==1.5.0
@@ -12,7 +12,7 @@ Requirements:
 """
 
 
-__version__ = '0.3.1'
+__version__ = '1.0.0'
 __author__ = 'fsmosca'
 __script_name__ = 'rating_correlations'
 __about__ = 'A streamlit web app to estimate rating as target based on other rating as feature.'
@@ -67,6 +67,9 @@ st.markdown(
 )
 
 
+MIN_CHESSCOM_CRAZYHOUSE_RD = 150
+
+
 @st.cache
 def convert_df(df):
     return df.to_csv(index=False).encode('utf-8')
@@ -78,7 +81,7 @@ def read_file(fn):
     return df
 
 
-def shap_plot(df, target: str):
+def shap_plot(df, target: str, server):
     """
     Use matplotlib 3.4.3
     target: chess960rating | crazyhouserating
@@ -93,21 +96,32 @@ def shap_plot(df, target: str):
         & (df['blitzrating'] >= minratings)
         & (df['rapidgames'] >= mingames)
         & (df['rapidrating'] >= minratings)
-        & (df['classicalgames'] >= mingames)
-        & (df['classicalrating'] >= minratings)
-        & (df[f'{gt}games'] >= mingames)
-        & (df[f'{gt}rating'] >= minratings)
     ]
 
-    feature_name = ['bulletrating', 'blitzrating', 'rapidrating', 'classicalrating',
-                    'bulletgames', 'blitzgames', 'rapidgames', 'classicalgames']
+    feature_name = [
+        'bulletrating', 'blitzrating', 'rapidrating', 'classicalrating',
+        'bulletgames', 'blitzgames', 'rapidgames', 'classicalgames'
+    ]
+
+    if server == 'Lichess.org':
+        df = df.loc[(df['classicalgames'] >= mingames) & (df['classicalrating'] >= minratings)]
+        df = df.loc[(df[f'{gt}games'] >= mingames) & (df[f'{gt}rating'] >= minratings)]
+    else:
+        feature_name.remove('classicalgames')
+        feature_name.remove('classicalrating')
+
+        if gt == 'crazyhouse':
+            df = df.loc[(df[f'{gt}rd'] <= MIN_CHESSCOM_CRAZYHOUSE_RD) & (df[f'{gt}rating'] >= minratings)]
+        else:
+            df = df.loc[(df[f'{gt}games'] >= mingames) & (df[f'{gt}rating'] >= minratings)]
+
     features = df[feature_name]
     target = df[target]
     X = features
     y = target
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=1)
 
-    model = xg.XGBRegressor(objective ='reg:squarederror', booster='gbtree', n_estimators = 10000, seed = 123, n_jobs=1)
+    model = xg.XGBRegressor(objective ='reg:squarederror', booster='gbtree', n_estimators = 2000, seed = 123, n_jobs=1)
     model.fit(X_train, y_train, eval_set=[(X_test, y_test)], early_stopping_rounds=100, verbose=False)
     y_pred = model.predict(X_test)
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
@@ -121,12 +135,21 @@ def shap_plot(df, target: str):
     RMSE                 : **{round(rmse)}**  
     ''')
 
-    fig, ax = plt.subplots()
+    fig, _ = plt.subplots()
     shap_values_test = shap.TreeExplainer(model).shap_values(X_test)
     shap.summary_plot(shap_values_test, X_test, show=False, plot_size=(8, 4))
     buf = BytesIO()
     fig.savefig(buf, format="png", bbox_inches='tight', dpi=80)
     st.image(buf)
+
+
+def my_title(server):
+    st.markdown(f'''
+    #### {server} Rating Correlations
+    ''')
+    if server == 'Lichess.org':
+        return 'lichess_chess960_crazyhouse.csv'
+    return 'chesscom_chess960_crazyhouse.csv'
 
 
 def main():
@@ -155,18 +178,26 @@ def main():
     if 'regoutlier' not in st.session_state:
         st.session_state.regoutlier = 400        
 
-    st.write('## Lichess Rating Correlation')
+    st.sidebar.write('# REGRESSION OPTIONS')
 
-    fn = 'lichess_chess960_crazyhouse.csv'
+    server = st.sidebar.selectbox('Select Server', ['Lichess.org', 'Chess.com'])
+    fn = my_title(server)
     df = read_file(fn)
+    if server == 'Chess.com':
+        df.columns = ['username', 'chess960games', 'chess960rating',
+                      'bulletgames', 'bulletrating', 'blitzgames', 'blitzrating',
+                      'rapidgames', 'rapidrating', 'crazyhouserd', 'crazyhouserating'
+        ]
+
     df1 = df.copy()
     df2 = df.copy()
-
-    st.sidebar.write('# REGRESSION OPTIONS')
 
     reg_type = st.sidebar.selectbox('Select Regressor', ['statsmodels', 'xgboost'])
 
     multi_feature_options = ['Bullet', 'Blitz', 'Rapid', 'Classical']
+    if server == 'Chess.com':
+        multi_feature_options.remove('Classical')
+
     multi_features = st.sidebar.multiselect(
         label='Select Features', 
         default=['Bullet'],
@@ -174,6 +205,9 @@ def main():
     )
 
     target_options = ['Chess960', 'Bullet', 'Blitz', 'Rapid', 'Classical', 'Crazyhouse']
+    if server == 'Chess.com':
+        target_options.remove('Classical')
+
     for feat in multi_features:
         if feat in target_options:
             target_options.remove(feat)
@@ -192,7 +226,8 @@ def main():
         min_value=50,
         max_value=1000,
         key='regmingames',
-        help='default=50, min=50, max=1000'
+        help='default=50, min=50, max=1000, if server is Chess.com '
+             ' and target is crazyhouse, the RD must be 150 or less'
     )
 
     st.sidebar.number_input(
@@ -208,7 +243,8 @@ def main():
         min_value=50,
         max_value=1000,
         key='regoutlier',
-        help='default=400, min=50, max=1000, the minimum difference between feature rating and target rating, if low the error will be lower'
+        help='default=400, min=50, max=1000, the minimum difference between feature rating and target rating, '
+             'if low the error will be lower, but would result to lesser data points usage'
     )
 
     if len(multi_features) == 0:
@@ -221,7 +257,10 @@ def main():
         df1 = df1.loc[df1[f'{gt}games'] >= st.session_state.regmingames]
         df1 = df1.loc[df1[f'{gt}rating'] >= st.session_state.regminrating]
 
-    df1 = df1.loc[df1[f'{target_type_lower}games'] >= st.session_state.regmingames]
+    if server == 'Chess.com' and target_type_lower == 'crazyhouse':
+        df1 = df1.loc[df1[f'{target_type_lower}rd'] <= MIN_CHESSCOM_CRAZYHOUSE_RD]
+    else:
+        df1 = df1.loc[df1[f'{target_type_lower}games'] >= st.session_state.regmingames]
     df1 = df1.loc[df1[f'{target_type_lower}rating'] >= st.session_state.regminrating]
 
     # Remove outliers by rating diff.
@@ -229,8 +268,9 @@ def main():
           (abs(df1[f'{target_type_lower}rating'] - df1['bulletrating']) <= st.session_state.regoutlier)
         & (abs(df1[f'{target_type_lower}rating'] - df1['blitzrating']) <= st.session_state.regoutlier)
         & (abs(df1[f'{target_type_lower}rating'] - df1['rapidrating']) <= st.session_state.regoutlier)
-        & (abs(df1[f'{target_type_lower}rating'] - df1['classicalrating']) <= st.session_state.regoutlier)
     ]
+    if server == 'Lichess.org':
+        df1 = df1.loc[(abs(df1[f'{target_type_lower}rating'] - df1['classicalrating']) <= st.session_state.regoutlier)]
 
     df1 = df1.reset_index(drop=True)
 
@@ -307,8 +347,9 @@ def main():
                 )
             with col4:
                 # Classical
-                maxv = df1['classicalrating'].max()
-                classical_disabled = False if 'classicalrating' in multi_features else True
+                if server != 'Chess.com':
+                    maxv = df1['classicalrating'].max()
+                classical_disabled = False if 'classicalrating' in multi_features and server != 'Chess.com' else True
                 st.number_input(
                     label=f'Input Classical Rating',
                     min_value=1000,
@@ -388,7 +429,7 @@ def main():
             tt = 'chess960rating'
         else:
             tt = f'{target_type_lower}rating'
-        shap_plot(df2, tt)
+        shap_plot(df2, tt, server)
 
     with st.expander("DATASETS"):
         col1, col2 = st.columns(2)
@@ -396,40 +437,44 @@ def main():
         rX_test[f'{target_type_lower}rating'] = ry_test
 
         with col1:
-            st.write('Training datasets for the given regression variables')            
+            st.write('Training datasets summary for the given regression variables')            
             st.write(rX_train.describe())            
             
         with col2:
-            st.write('Test Datasets')
+            st.write('Test Datasets Summary')
             st.write(rX_test.describe())
 
-        st.write('All Datasets Info')
+        st.write('All Datasets Summary')
         st.write(df.describe())
+
+        st.write('Test Datasets Details')
+        st.write(df1)
 
     with st.expander('DOWNLOAD'):
         csv = convert_df(df)
         st.download_button(
-            label="Download all data as CSV",
+            label=f"Download all {server} data as CSV",
             data=csv,
-            file_name='lichess_rating_correlations.csv',
+            file_name='rating_correlations.csv',
             mime='text/csv',
         )
 
     with st.expander('DATA INFO'):
         st.markdown(f"""
-        *Date collected: 2022-01-23*  
-        *Source: Lichess*  
-        *User must have 50 or more games of either chess960 or crazyhouse*  
-        *User must have 50 or more games in either bullet, blitz, rapid or classical*  
-        *User is not a Lichess Terms of Service violator*
+        *Date collected:* **2022-01-23 - 2022-01-31**  
+        *Source:* **Lichess and Chess.com**  
+        **User must have 50 or more games of either chess960 or crazyhouse**  
+        **User must have 50 or more games in either bullet, blitz, rapid or classical**   
+        **User is not a Lichess Terms of Service violator**
         """
         )
 
     with st.expander('CREDITS'):
         st.markdown(f"""
         1. BCLC from [stackexchange](https://chess.stackexchange.com)  
-        2. [Lichess](https://lichess.org/)  
-        3. [Streamlit](https://github.com/streamlit/streamlit)  
+        2. [Lichess.org](https://lichess.org/)  
+        3. [Chess.com](https://chess.com/)  
+        4. [Streamlit](https://github.com/streamlit/streamlit)  
         """
         )        
 
