@@ -12,7 +12,7 @@ Requirements:
 """
 
 
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 __author__ = 'fsmosca'
 __script_name__ = 'rating_correlations'
 __about__ = 'A streamlit web app to estimate rating as target based on other rating as feature.'
@@ -59,6 +59,11 @@ st.markdown(
 }
 .st-ag {
     font-weight: bold;
+}
+.css-1cpxqw2 {
+    font-weight: bold;
+    background-color: #083A30;
+    color: white;
 }
 </style>
 """,
@@ -247,7 +252,7 @@ def main():
 
     statsmodels_result, xgboost_model = None, None
     if reg_type == 'xgboost':
-        xgboost_model = xg.XGBRegressor(objective ='reg:squarederror', booster='gblinear', n_estimators = 10000, seed = 123, n_jobs=1)
+        xgboost_model = xg.XGBRegressor(objective ='reg:squarederror', booster='gblinear', n_estimators = 2000, seed = 123, n_jobs=1)
         xgboost_model.fit(X_train, y_train, eval_set=[(X_test, y_test)], early_stopping_rounds=100, verbose=False)
         y_pred = xgboost_model.predict(X_test)
     elif reg_type == 'statsmodels':
@@ -267,77 +272,83 @@ def main():
 
     with st.expander('CONVERSION', expanded=True):
         col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            # Bullet
-            maxv = df1['bulletrating'].max()
-            bullet_disabled = False if 'bulletrating' in multi_features else True
-            st.number_input(
-                label=f'Input Bullet Rating',
-                min_value=1000,
-                max_value=maxv,
-                key='bulletrating',
-                disabled=bullet_disabled,
-                help=f'min=1000, max={maxv}'
-            )
-        with col2:
-            # Blitz
-            maxv = df1['blitzrating'].max()
-            blitz_disabled = False if 'blitzrating' in multi_features else True
-            st.number_input(
-                label=f'Input Blitz Rating',
-                min_value=1000,
-                max_value=maxv,
-                key='blitzrating',
-                disabled=blitz_disabled,
-                help=f'min=1000, max={maxv}'
-            )
-        with col3:
-            # Rapid
-            maxv = df1['rapidrating'].max()
-            rapid_disabled = False if 'rapidrating' in multi_features else True
-            st.number_input(
-                label=f'Input Rapid Rating',
-                min_value=1000,
-                max_value=maxv,
-                key='rapidrating',
-                disabled=rapid_disabled,
-                help=f'min=1000, max={maxv}'
-            )
-        with col4:
-            # Classical
-            maxv = df1['classicalrating'].max()
-            classical_disabled = False if 'classicalrating' in multi_features else True
-            st.number_input(
-                label=f'Input Classical Rating',
-                min_value=1000,
-                max_value=maxv,
-                key='classicalrating',
-                disabled=classical_disabled,
-                help=f'min=1000, max={maxv}'
-            )  
+        with st.form(key='conversion_form_k'):
+            with col1:
+                # Bullet
+                maxv = df1['bulletrating'].max()
+                bullet_disabled = False if 'bulletrating' in multi_features else True
+                st.number_input(
+                    label=f'Input Bullet Rating',
+                    min_value=1000,
+                    max_value=maxv,
+                    key='bulletrating',
+                    disabled=bullet_disabled,
+                    help=f'min=1000, max={maxv}'
+                )
+            with col2:
+                # Blitz
+                maxv = df1['blitzrating'].max()
+                blitz_disabled = False if 'blitzrating' in multi_features else True
+                st.number_input(
+                    label=f'Input Blitz Rating',
+                    min_value=1000,
+                    max_value=maxv,
+                    key='blitzrating',
+                    disabled=blitz_disabled,
+                    help=f'min=1000, max={maxv}'
+                )
+            with col3:
+                # Rapid
+                maxv = df1['rapidrating'].max()
+                rapid_disabled = False if 'rapidrating' in multi_features else True
+                st.number_input(
+                    label=f'Input Rapid Rating',
+                    min_value=1000,
+                    max_value=maxv,
+                    key='rapidrating',
+                    disabled=rapid_disabled,
+                    help=f'min=1000, max={maxv}'
+                )
+            with col4:
+                # Classical
+                maxv = df1['classicalrating'].max()
+                classical_disabled = False if 'classicalrating' in multi_features else True
+                st.number_input(
+                    label=f'Input Classical Rating',
+                    min_value=1000,
+                    max_value=maxv,
+                    key='classicalrating',
+                    disabled=classical_disabled,
+                    help=f'min=1000, max={maxv}'
+                )  
 
-        if reg_type == 'statsmodels':
-            target_rating = coeff['const']
-            if 'bulletrating' in multi_features:
-                target_rating += st.session_state.bulletrating * coeff['bulletrating']
-            if 'blitzrating' in multi_features:
-                target_rating += st.session_state.blitzrating * coeff['blitzrating']
-            if 'rapidrating' in multi_features:
-                target_rating += st.session_state.rapidrating * coeff['rapidrating']
-            if 'classicalrating' in multi_features:
-                target_rating += st.session_state.classicalrating * coeff['classicalrating']
-        elif reg_type == 'xgboost':
-            target_rating = xgboost_model.intercept_[0]
-            for i, f in enumerate(multi_features):
-                gt = f.split('rating')[0]  # bullet, blitz ...
-                target_rating += st.session_state[f'{gt}rating'] * xgboost_model.coef_[i]
+            if reg_type == 'statsmodels':
+                target_rating = coeff['const']
+                if 'bulletrating' in multi_features:
+                    target_rating += st.session_state.bulletrating * coeff['bulletrating']
+                if 'blitzrating' in multi_features:
+                    target_rating += st.session_state.blitzrating * coeff['blitzrating']
+                if 'rapidrating' in multi_features:
+                    target_rating += st.session_state.rapidrating * coeff['rapidrating']
+                if 'classicalrating' in multi_features:
+                    target_rating += st.session_state.classicalrating * coeff['classicalrating']
+            elif reg_type == 'xgboost':
+                target_rating = xgboost_model.intercept_[0]
+                for i, f in enumerate(multi_features):
+                    gt = f.split('rating')[0]  # bullet, blitz ...
+                    target_rating += st.session_state[f'{gt}rating'] * xgboost_model.coef_[i]
 
-        pred_interval = round(1.96*rmse)
-        st.text_input(
-            label=f'Output estimated {st.session_state.target_type} Rating',
-            value=f'{round(target_rating)} +/- ({pred_interval})',
-            help=f'Prediction Margin of Error: +/- ({pred_interval}), Confidence level: 95%'
-        )
+            pred_interval = round(1.96*rmse)
+            is_calculate_rating = st.form_submit_button(label='Calculate Rating Prediction')
+            prediction_value = 'None'
+            if is_calculate_rating:
+                prediction_value = f'{round(target_rating)}'
+            st.markdown(f'''
+            Rating Prediction: **{prediction_value}**, Type: **{st.session_state.target_type}**, Margin of Error: **+/- ({pred_interval})**, Confidence Level: **{95}%**
+            ''')
+
+    if not is_calculate_rating:
+        return
 
     # Plot outputs
     with st.expander('REGRESSION PLOT'):
