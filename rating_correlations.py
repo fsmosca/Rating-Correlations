@@ -12,7 +12,7 @@ Requirements:
 """
 
 
-__version__ = '1.2.1'
+__version__ = '1.2.2'
 __author__ = 'fsmosca'
 __script_name__ = 'rating_correlations'
 __about__ = 'A streamlit web app to estimate rating as target based on other rating as feature.'
@@ -148,7 +148,7 @@ def shap_plot(df, target: str, server):
     st.image(buf)
 
 
-def my_title(server):
+def show_title(server):
     st.markdown(f'''
     #### {server} Rating Correlations
     ''')
@@ -224,7 +224,7 @@ def main():
     st.sidebar.write('# REGRESSION OPTIONS')
 
     server = st.sidebar.selectbox('Select Server', ['Lichess.org', 'Chess.com'])
-    fn = my_title(server)
+    fn = show_title(server)
     df = read_file(fn)
     if server == 'Chess.com':
         df.columns = ['username', 'chess960games', 'chess960rating',
