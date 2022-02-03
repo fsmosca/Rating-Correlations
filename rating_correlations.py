@@ -12,7 +12,7 @@ Requirements:
 """
 
 
-__version__ = '1.4.0'
+__version__ = '1.5.0'
 __author__ = 'fsmosca'
 __script_name__ = 'rating_correlations'
 __about__ = 'A streamlit web app to estimate rating as target based on other rating as feature.'
@@ -272,7 +272,13 @@ def main():
         st.session_state.regminrating = 1000
 
     if 'regoutlier' not in st.session_state:
-        st.session_state.regoutlier = 400        
+        st.session_state.regoutlier = 400    
+
+    if 'plot_distribution' not in st.session_state:
+        st.session_state.plot_distribution = False
+
+    if 'plot_shap' not in st.session_state:
+        st.session_state.plot_shap = False
 
     st.sidebar.write('# REGRESSION OPTIONS')
 
@@ -342,6 +348,9 @@ def main():
         help='default=400, min=50, max=1000, the minimum difference between feature rating and target rating, '
              'if low the error will be lower, but would result to lesser data points usage'
     )
+
+    st.sidebar.checkbox(label='Plot Distributions', key='plot_distribution')
+    st.sidebar.checkbox(label='Plot SHAP', key='plot_shap')
 
     if len(multi_features) == 0:
         st.warning('Please select a feature.')
@@ -496,30 +505,32 @@ def main():
         if reg_type == 'statsmodels':
             st.write(model.summary())
 
-    with st.expander('DISTRIBUTION PLOTS'):
-        st.write('Each user has a minimum of 50 games and a minimum rating of 500. When server '
-                  'is chess.com and variant is crazyhouse the RD (rating deviation) is 200 and below.')
-        col1, col2 = st.columns(2)
-        with col1:
-            dist_plot('Lichess.org', 'chess960')
-        with col2:
-            dist_plot('Chess.com', 'chess960')
-        st.markdown('''
-        ---
-        ''')
-        col1, col2 = st.columns(2)
-        with col1:
-            dist_plot('Lichess.org', 'crazyhouse')
-        with col2:
-            dist_plot('Chess.com', 'crazyhouse')
+    if st.session_state.plot_distribution:
+        with st.expander('DISTRIBUTION PLOTS'):
+            st.write('Each user has a minimum of 50 games and a minimum rating of 500. When server '
+                      'is chess.com and variant is crazyhouse the RD (rating deviation) is 200 and below.')
+            col1, col2 = st.columns(2)
+            with col1:
+                dist_plot('Lichess.org', 'chess960')
+            with col2:
+                dist_plot('Chess.com', 'chess960')
+            st.markdown('''
+            ---
+            ''')
+            col1, col2 = st.columns(2)
+            with col1:
+                dist_plot('Lichess.org', 'crazyhouse')
+            with col2:
+                dist_plot('Chess.com', 'crazyhouse')
 
-    with st.expander('All FEATURE SHAP PLOT'):
-        tt = 'chess960rating'
-        if target_type_lower != 'chess960' and target_type_lower != 'crazyhouse':
+    if st.session_state.plot_shap:
+        with st.expander('SHAP PLOT'):
             tt = 'chess960rating'
-        else:
-            tt = f'{target_type_lower}rating'
-        shap_plot(df2, tt, server)
+            if target_type_lower != 'chess960' and target_type_lower != 'crazyhouse':
+                tt = 'chess960rating'
+            else:
+                tt = f'{target_type_lower}rating'
+            shap_plot(df2, tt, server)
 
     with st.expander("DATASETS"):
         col1, col2 = st.columns(2)
