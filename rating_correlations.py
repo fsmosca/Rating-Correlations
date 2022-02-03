@@ -12,7 +12,7 @@ Requirements:
 """
 
 
-__version__ = '1.3.0'
+__version__ = '1.3.1'
 __author__ = 'fsmosca'
 __script_name__ = 'rating_correlations'
 __about__ = 'A streamlit web app to estimate rating as target based on other rating as feature.'
@@ -179,13 +179,18 @@ def dist_plot(server, game_type):
         elif server == 'Chess.com':
             df = df.loc[(df[f'{game_type}rd'] <= 200) & (df[f'{game_type}rating'] >= 500)]
 
+    stats = {
+        'mean': round(df[f"{game_type}rating"].mean()),
+        'mode': round(df[f"{game_type}rating"].mode().iat[0]),
+        'median': round(df[f"{game_type}rating"].median()),
+        'stdev': round(df[f"{game_type}rating"].std()),
+        'datasets': df.shape[0]
+    }
+
     st.markdown(f'''
-    ##### {server}, {game_type}, datasets: {df.shape[0]}
-    mean: **{round(df[f"{game_type}rating"].mean())}**, 
-    mode: **{round(df[f"{game_type}rating"].mode().iat[0])}**, 
-    median: **{round(df[f"{game_type}rating"].median())}**, 
-    stdev: **{round(df[f"{game_type}rating"].std())}**
+    ##### {server} - {game_type}
     ''')
+    st.write(stats)
     plt.figure(figsize=(8,4))
     bin = 50
     sns.displot(df[f'{game_type}rating'], bins=bin, kde=True)
@@ -343,12 +348,7 @@ def main():
     X = features
     y = target
 
-    rX_train, rX_test, ry_train, ry_test = train_test_split(X, y, test_size=0.30, random_state=1)
-    X_train = rX_train.copy()
-    y_train = ry_train.copy()
-    X_test = rX_test.copy()
-    y_test = ry_test.copy()
-
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=1)
     model, y_pred, coeff = build_model(reg_type, multi_features, X_train, y_train, X_test, y_test)
     rmse = sqrt(mean_squared_error(y_test, y_pred))
 
@@ -469,8 +469,8 @@ def main():
             st.write(model.summary())
 
     with st.expander('DISTRIBUTION PLOTS'):
-        st.write('Each user must have a minimum of 50 games and a minimum rating of 500. When server '
-                  'is chess.com and variant is crazyhouse RD is 200 and below.')
+        st.write('Each user has a minimum of 50 games and a minimum rating of 500. When server '
+                  'is chess.com and variant is crazyhouse the RD (rating deviation) is 200 and below.')
         col1, col2 = st.columns(2)
         with col1:
             dist_plot('Lichess.org', 'chess960')
@@ -495,16 +495,14 @@ def main():
 
     with st.expander("DATASETS"):
         col1, col2 = st.columns(2)
-        rX_train[f'{target_type_lower}rating'] = ry_train
-        rX_test[f'{target_type_lower}rating'] = ry_test
 
         with col1:
             st.write('Training datasets summary for the given regression variables')            
-            st.write(rX_train.describe())            
+            st.write(X_train.describe())            
             
         with col2:
             st.write('Test Datasets Summary')
-            st.write(rX_test.describe())
+            st.write(X_test.describe())
 
         st.write('All Datasets Summary')
         st.write(df.describe())
