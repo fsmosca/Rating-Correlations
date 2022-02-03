@@ -12,7 +12,7 @@ Requirements:
 """
 
 
-__version__ = '1.2.0'
+__version__ = '1.2.1'
 __author__ = 'fsmosca'
 __script_name__ = 'rating_correlations'
 __about__ = 'A streamlit web app to estimate rating as target based on other rating as feature.'
@@ -521,7 +521,7 @@ def main():
 
     with st.expander('DATA INFO'):
         st.markdown(f"""
-        *Date collected:* **2022-01-23 - 2022-01-31**  
+        *Date collected:* **2022-01-23 - 2022-02-03**  
         *Source:* **Lichess and Chess.com**  
         **User must have 50 or more games of either chess960 or crazyhouse**  
         **User must have 50 or more games in either bullet, blitz, rapid or classical**   
