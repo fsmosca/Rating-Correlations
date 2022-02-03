@@ -12,7 +12,7 @@ Requirements:
 """
 
 
-__version__ = '1.3.1'
+__version__ = '1.4.0'
 __author__ = 'fsmosca'
 __script_name__ = 'rating_correlations'
 __about__ = 'A streamlit web app to estimate rating as target based on other rating as feature.'
@@ -194,6 +194,34 @@ def dist_plot(server, game_type):
     plt.figure(figsize=(8,4))
     bin = 50
     sns.displot(df[f'{game_type}rating'], bins=bin, kde=True)
+    plt.tight_layout()
+    buf = BytesIO()
+    plt.savefig(buf, format="png", dpi=100)
+    st.image(buf)
+
+    # 2d histogram between the target and bullet.
+    x_label = 'bullet'
+    dfx = df.loc[(abs(df[f'{x_label}rating'] - df[f'{game_type}rating']) <= 400)]
+    plt.figure(figsize=(6,4))
+    sns.histplot(
+        dfx, x=f'{x_label}rating', y=f'{game_type}rating',
+        bins=20, discrete=(False, False), log_scale=(False, False),
+        cbar=True, cbar_kws=dict(shrink=0.7),
+    )
+    plt.tight_layout()
+    buf = BytesIO()
+    plt.savefig(buf, format="png", dpi=100)
+    st.image(buf)
+
+    # 2d histogram between the target and blitz.
+    x_label = 'blitz'
+    dfx = df.loc[(abs(df[f'{x_label}rating'] - df[f'{game_type}rating']) <= 400)]
+    plt.figure(figsize=(6,4))
+    sns.histplot(
+        dfx, x=f'{x_label}rating', y=f'{game_type}rating',
+        bins=20, discrete=(False, False), log_scale=(False, False),
+        cbar=True, cbar_kws=dict(shrink=0.7),
+    )
     plt.tight_layout()
     buf = BytesIO()
     plt.savefig(buf, format="png", dpi=100)
