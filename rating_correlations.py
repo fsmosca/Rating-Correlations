@@ -12,7 +12,7 @@ Requirements:
 """
 
 
-__version__ = '1.1.0'
+__version__ = '1.2.0'
 __author__ = 'fsmosca'
 __script_name__ = 'rating_correlations'
 __about__ = 'A streamlit web app to estimate rating as target based on other rating as feature.'
@@ -29,6 +29,7 @@ from math import sqrt
 import statsmodels.api as sm
 import shap
 import numpy as np
+import seaborn as sns
 
 
 plt.rc("figure", figsize=(12, 6))
@@ -71,7 +72,7 @@ st.markdown(
 )
 
 
-MIN_CHESSCOM_CRAZYHOUSE_RD = 150
+MIN_CHESSCOM_CRAZYHOUSE_RD = 200
 
 
 @st.cache
@@ -92,7 +93,7 @@ def shap_plot(df, target: str, server):
     """
     gt = target.split('rating')[0]  # chess960, crazyhouse ...
     mingames = 50
-    minratings = 1200
+    minratings = 500
     df = df.loc[
           (df['bulletgames'] >= mingames)
         & (df['bulletrating'] >= minratings)
@@ -132,7 +133,7 @@ def shap_plot(df, target: str, server):
 
     st.markdown(f'''
     #### The impact of features on {gt.title()} Rating prediction
-    All datasets used in the regression have 50 or more games and 1200 or more ratings points.  
+    All datasets used in the regression have {mingames} or more games and {minratings} or more ratings points.  
     Library              : **XGBoost using gbtree**  
     Train Datasets Count : **{len(X_train)}**  
     Test Datasets Count  : **{len(X_test)}**  
@@ -154,6 +155,44 @@ def my_title(server):
     if server == 'Lichess.org':
         return 'lichess_chess960_crazyhouse.csv'
     return 'chesscom_chess960_crazyhouse.csv'
+
+
+def dist_plot(server, game_type):
+    """
+    server: lichess.org or chess.com
+    game_type: chess960 or crazyhouse
+    """
+    fn = None
+    if server == 'Lichess.org':
+        fn = 'lichess_chess960_crazyhouse.csv'
+    elif server == 'Chess.com':
+        fn = 'chesscom_chess960_crazyhouse.csv'
+    else:
+        raise Exception(f'server {server} is not defined.')
+
+    df = read_file(fn)
+    if game_type == 'chess960':
+        df = df.loc[(df[f'{game_type}games'] >= 50) & (df[f'{game_type}rating'] >= 500)]
+    elif game_type == 'crazyhouse':
+        if server == 'Lichess.org':
+            df = df.loc[(df[f'{game_type}games'] >= 50) & (df[f'{game_type}rating'] >= 500)]
+        elif server == 'Chess.com':
+            df = df.loc[(df[f'{game_type}rd'] <= 200) & (df[f'{game_type}rating'] >= 500)]
+
+    st.markdown(f'''
+    ##### {server}, {game_type}, datasets: {df.shape[0]}
+    mean: **{round(df[f"{game_type}rating"].mean())}**, 
+    mode: **{round(df[f"{game_type}rating"].mode().iat[0])}**, 
+    median: **{round(df[f"{game_type}rating"].median())}**, 
+    stdev: **{round(df[f"{game_type}rating"].std())}**
+    ''')
+    plt.figure(figsize=(8,4))
+    bin = 50
+    sns.displot(df[f'{game_type}rating'], bins=bin, kde=True)
+    plt.tight_layout()
+    buf = BytesIO()
+    plt.savefig(buf, format="png", dpi=100)
+    st.image(buf)
 
 
 def main():
@@ -426,6 +465,23 @@ def main():
     with st.expander("REGRESSION RESULT"):
         if reg_type == 'statsmodels':
             st.write(statsmodels_result.summary())
+
+    with st.expander('DISTRIBUTION PLOTS'):
+        st.write('Each user must have a minimum of 50 games and a minimum rating of 500. When server '
+                  'is chess.com and variant is crazyhouse RD is 200 and below.')
+        col1, col2 = st.columns(2)
+        with col1:
+            dist_plot('Lichess.org', 'chess960')
+        with col2:
+            dist_plot('Chess.com', 'chess960')
+        st.markdown('''
+        ---
+        ''')
+        col1, col2 = st.columns(2)
+        with col1:
+            dist_plot('Lichess.org', 'crazyhouse')
+        with col2:
+            dist_plot('Chess.com', 'crazyhouse')
 
     with st.expander('All FEATURE SHAP PLOT'):
         tt = 'chess960rating'
