@@ -12,7 +12,7 @@ Requirements:
 """
 
 
-__version__ = '1.5.0'
+__version__ = '1.5.1'
 __author__ = 'fsmosca'
 __script_name__ = 'rating_correlations'
 __about__ = 'A streamlit web app to estimate rating as target based on other rating as feature.'
@@ -157,6 +157,23 @@ def show_title(server):
     return 'chesscom_chess960_crazyhouse.csv'
 
 
+def plot_2dhist(df, server, game_type, feature):
+    dfx = df.loc[(abs(df[f'{feature}rating'] - df[f'{game_type}rating']) <= 400)]
+    plt.figure(figsize=(6,4))
+    sns.histplot(
+        dfx, x=f'{feature}rating', y=f'{game_type}rating',
+        bins=20, discrete=(False, False), log_scale=(False, False),
+        cbar=True, cbar_kws=dict(shrink=0.8),
+    )
+    plt.tight_layout()
+    plt.xlabel(f'{server} {feature} rating', fontsize=9)
+    plt.ylabel(f'{server} {game_type} rating', fontsize=9)
+    buf = BytesIO()
+    plt.savefig(buf, format="png", dpi=100)
+    st.image(buf)
+    plt.close()   
+
+
 def dist_plot(server, game_type):
     """
     server: lichess.org or chess.com
@@ -198,34 +215,10 @@ def dist_plot(server, game_type):
     buf = BytesIO()
     plt.savefig(buf, format="png", dpi=100)
     st.image(buf)
+    plt.close()
 
-    # 2d histogram between the target and bullet.
-    x_label = 'bullet'
-    dfx = df.loc[(abs(df[f'{x_label}rating'] - df[f'{game_type}rating']) <= 400)]
-    plt.figure(figsize=(6,4))
-    sns.histplot(
-        dfx, x=f'{x_label}rating', y=f'{game_type}rating',
-        bins=20, discrete=(False, False), log_scale=(False, False),
-        cbar=True, cbar_kws=dict(shrink=0.7),
-    )
-    plt.tight_layout()
-    buf = BytesIO()
-    plt.savefig(buf, format="png", dpi=100)
-    st.image(buf)
-
-    # 2d histogram between the target and blitz.
-    x_label = 'blitz'
-    dfx = df.loc[(abs(df[f'{x_label}rating'] - df[f'{game_type}rating']) <= 400)]
-    plt.figure(figsize=(6,4))
-    sns.histplot(
-        dfx, x=f'{x_label}rating', y=f'{game_type}rating',
-        bins=20, discrete=(False, False), log_scale=(False, False),
-        cbar=True, cbar_kws=dict(shrink=0.7),
-    )
-    plt.tight_layout()
-    buf = BytesIO()
-    plt.savefig(buf, format="png", dpi=100)
-    st.image(buf)
+    for f in ['bullet', 'blitz', 'rapid']:
+        plot_2dhist(df, server, game_type, f)
 
 
 def build_model(reg_type, multi_features, X_train, y_train, X_test, y_test):
