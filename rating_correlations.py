@@ -12,7 +12,7 @@ Requirements:
 """
 
 
-__version__ = '1.2.2'
+__version__ = '1.3.0'
 __author__ = 'fsmosca'
 __script_name__ = 'rating_correlations'
 __about__ = 'A streamlit web app to estimate rating as target based on other rating as feature.'
@@ -195,6 +195,26 @@ def dist_plot(server, game_type):
     st.image(buf)
 
 
+def build_model(reg_type, multi_features, X_train, y_train, X_test, y_test):
+    if reg_type == 'xgboost':
+        model = xg.XGBRegressor(objective ='reg:squarederror', booster='gblinear', n_estimators = 2000, seed = 123, n_jobs=1)
+        model.fit(X_train, y_train, eval_set=[(X_test, y_test)], early_stopping_rounds=100, verbose=False)
+        y_pred = model.predict(X_test)
+        coeff = {'const': model.intercept_[0]}
+        for i, f in enumerate(multi_features):
+            coeff.update({f: model.coef_[i]})
+    elif reg_type == 'statsmodels':
+        X_train = sm.add_constant(X_train)
+        model = sm.OLS(y_train, X_train).fit()
+        dfres = model.params
+        dfres = dfres.reset_index()
+        coeff = dict(dfres.values)  # keys = const, feature1, ...
+        X_test_tmp = X_test.copy()
+        X_test_tmp = sm.add_constant(X_test_tmp)
+        y_pred = model.predict(X_test_tmp)
+    return model, y_pred, coeff
+
+
 def main():
     # Initial session states
     if 'bulletrating' not in st.session_state:
@@ -329,24 +349,7 @@ def main():
     X_test = rX_test.copy()
     y_test = ry_test.copy()
 
-    statsmodels_result, xgboost_model = None, None
-    if reg_type == 'xgboost':
-        xgboost_model = xg.XGBRegressor(objective ='reg:squarederror', booster='gblinear', n_estimators = 2000, seed = 123, n_jobs=1)
-        xgboost_model.fit(X_train, y_train, eval_set=[(X_test, y_test)], early_stopping_rounds=100, verbose=False)
-        y_pred = xgboost_model.predict(X_test)
-    elif reg_type == 'statsmodels':
-        X_train = sm.add_constant(X_train)
-        stasmodels_model = sm.OLS(y_train, X_train)
-        statsmodels_result = stasmodels_model.fit()
-
-        dfres = statsmodels_result.params
-        dfres = dfres.reset_index()
-        coeff = dict(dfres.values)  # keys = const, feature1, ...
-
-        X_test_tmp = X_test.copy()
-        X_test_tmp = sm.add_constant(X_test_tmp)
-        y_pred = statsmodels_result.predict(X_test_tmp)
-
+    model, y_pred, coeff = build_model(reg_type, multi_features, X_train, y_train, X_test, y_test)
     rmse = sqrt(mean_squared_error(y_test, y_pred))
 
     with st.expander('CONVERSION', expanded=True):
@@ -413,10 +416,9 @@ def main():
                 if 'classicalrating' in multi_features:
                     target_rating += st.session_state.classicalrating * coeff['classicalrating']
             elif reg_type == 'xgboost':
-                target_rating = xgboost_model.intercept_[0]
-                for i, f in enumerate(multi_features):
-                    gt = f.split('rating')[0]  # bullet, blitz ...
-                    target_rating += st.session_state[f'{gt}rating'] * xgboost_model.coef_[i]
+                target_rating = coeff['const']
+                for f in multi_features:
+                    target_rating += st.session_state[f] * coeff[f]
 
             pred_interval = round(1.96*rmse)
             is_calculate_rating = st.form_submit_button(label='Calculate Rating Prediction')
@@ -436,7 +438,7 @@ def main():
             isbullet = False
             if 'bulletrating' in multi_features:
                 isbullet = True
-                fig = sm.graphics.plot_regress_exog(statsmodels_result, "bulletrating")
+                fig = sm.graphics.plot_regress_exog(model, "bulletrating")
                 fig.tight_layout(pad=1.0)
                 buf = BytesIO()
                 fig.savefig(buf, format="png")
@@ -447,7 +449,7 @@ def main():
                 isblitz = True
                 if isbullet:
                     st.markdown(''' --- ''')
-                fig = sm.graphics.plot_regress_exog(statsmodels_result, "blitzrating")
+                fig = sm.graphics.plot_regress_exog(model, "blitzrating")
                 fig.tight_layout(pad=1.0)
                 buf = BytesIO()
                 fig.savefig(buf, format="png")
@@ -456,7 +458,7 @@ def main():
             if 'rapidrating' in multi_features:
                 if isblitz:
                     st.markdown(''' --- ''')
-                fig = sm.graphics.plot_regress_exog(statsmodels_result, "rapidrating")
+                fig = sm.graphics.plot_regress_exog(model, "rapidrating")
                 fig.tight_layout(pad=1.0)
                 buf = BytesIO()
                 fig.savefig(buf, format="png")
@@ -464,7 +466,7 @@ def main():
 
     with st.expander("REGRESSION RESULT"):
         if reg_type == 'statsmodels':
-            st.write(statsmodels_result.summary())
+            st.write(model.summary())
 
     with st.expander('DISTRIBUTION PLOTS'):
         st.write('Each user must have a minimum of 50 games and a minimum rating of 500. When server '
