@@ -12,7 +12,7 @@ Requirements:
 """
 
 
-__version__ = '1.5.2'
+__version__ = '1.5.3'
 __author__ = 'fsmosca'
 __script_name__ = 'rating_correlations'
 __about__ = 'A streamlit web app to estimate rating as target based on other rating as feature.'
@@ -278,11 +278,6 @@ def main():
     server = st.sidebar.selectbox('Select Server', ['Lichess.org', 'Chess.com'])
     fn = show_title(server)
     df = read_file(fn)
-    if server == 'Chess.com':
-        df.columns = ['username', 'chess960games', 'chess960rating',
-                      'bulletgames', 'bulletrating', 'blitzgames', 'blitzrating',
-                      'rapidgames', 'rapidrating', 'crazyhouserd', 'crazyhouserating'
-        ]
 
     df1 = df.copy()
     df2 = df.copy()
