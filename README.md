@@ -1,5 +1,9 @@
 # Rating Correlations
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://docs.streamlit.io/) 
+![Heroku](https://heroku-badge.herokuapp.com/?app=ratingcorrelations) 
+[![Python 3.9](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/release/python-390/)
+
 Generates a linear model and use it to predict a rating like chess960 or crazyhouse given bullet and blitz ratings for example. It can only predict ratings from the same server like if your input is from Lichess its prediction is only applicable for Lichess. Supported servers are Lichess and Chess.com.
 
 The users are provided with two libraries namely xgboost and statsmodels to create simple and multiple linear regression models. Regression plots are generated when the libary used is statsmodels. There is also SHAP plot to see which features matters most and in what directions and how much it influences the prediction output. 
