@@ -12,7 +12,7 @@ Requirements:
 """
 
 
-__version__ = '1.5.1'
+__version__ = '1.5.2'
 __author__ = 'fsmosca'
 __script_name__ = 'rating_correlations'
 __about__ = 'A streamlit web app to estimate rating as target based on other rating as feature.'
@@ -370,7 +370,7 @@ def main():
     if server == 'Lichess.org':
         df1 = df1.loc[(abs(df1[f'{target_type_lower}rating'] - df1['classicalrating']) <= st.session_state.regoutlier)]
 
-    df1 = df1.reset_index(drop=True)
+    df1 = df1.sample(frac=1).reset_index(drop=True)
 
     features = df1[multi_features]
     target = df1[f'{target_type_lower}rating']
