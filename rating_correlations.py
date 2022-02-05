@@ -12,7 +12,7 @@ Requirements:
 """
 
 
-__version__ = '1.5.3'
+__version__ = '1.5.4'
 __author__ = 'fsmosca'
 __script_name__ = 'rating_correlations'
 __about__ = 'A streamlit web app to estimate rating as target based on other rating as feature.'
@@ -534,7 +534,7 @@ def main():
         st.write('All Datasets Summary')
         st.write(df.describe())
 
-        st.write('Test Datasets Details')
+        st.write('Regression Datasets Details')
         st.write(df1)
 
     with st.expander('DOWNLOAD'):
