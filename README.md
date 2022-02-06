@@ -16,8 +16,7 @@ You can run this locally by cloning this repo, install the dependents in require
 
 **Usage**  
 A sample video on how to use it.
-<video src='https://user-images.githubusercontent.com/22366935/152262366-fa92f278-17eb-4ede-93e8-02654c3aeb08.mov'/>
-
+<video src='https://user-images.githubusercontent.com/22366935/152673467-8503b09f-85dc-40e8-8455-cdbac694a773.mov'/>
 
 ### Credits
 * [Lichess.org](https://lichess.org/)  
