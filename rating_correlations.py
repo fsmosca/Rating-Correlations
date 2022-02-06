@@ -12,7 +12,7 @@ Requirements:
 """
 
 
-__version__ = '1.5.4'
+__version__ = '1.5.5'
 __author__ = 'fsmosca'
 __script_name__ = 'rating_correlations'
 __about__ = 'A streamlit web app to estimate rating as target based on other rating as feature.'
@@ -40,7 +40,7 @@ st.set_page_config(
     page_title="Rating Correlations",
     layout="wide",
     initial_sidebar_state="expanded",
-    menu_items={'about': f'Rating Correlations v{__version__}'}
+    menu_items={'about': f'[Rating Correlations v{__version__}](https://github.com/fsmosca/Rating-Correlations)'}
 )
 
 
