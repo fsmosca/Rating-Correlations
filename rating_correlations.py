@@ -12,7 +12,7 @@ Requirements:
 """
 
 
-__version__ = '1.5.5'
+__version__ = '1.6.0'
 __author__ = 'fsmosca'
 __script_name__ = 'rating_correlations'
 __about__ = 'A streamlit web app to estimate rating as target based on other rating as feature.'
@@ -158,7 +158,17 @@ def show_title(server):
 
 
 def plot_2dhist(df, server, game_type, feature):
-    dfx = df.loc[(abs(df[f'{feature}rating'] - df[f'{game_type}rating']) <= 400)]
+    dfx = df.loc[(abs(df[f'{feature}rating'] - df[f'{game_type}rating']) <= st.session_state.regoutlier)]
+
+    # Limit games to 50 and above except crazyhouse for chess.com, rating to 500 and above.
+    if server == 'Chess.com' and game_type == 'crazyhouse':
+        dfx = dfx.loc[dfx[f'{game_type}rd'] <= 200]
+        dfx = dfx.loc[dfx[f'{feature}rating'] >= 500]
+    else:
+        dfx = dfx.loc[dfx[f'{feature}rating'] >= 500]
+        dfx = dfx.loc[dfx[f'{feature}games'] >= 50]
+    dfx = dfx.loc[dfx[f'{game_type}rating'] >= 500]
+
     plt.figure(figsize=(6,4))
     sns.histplot(
         dfx, x=f'{feature}rating', y=f'{game_type}rating',
