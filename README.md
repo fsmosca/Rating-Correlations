@@ -22,4 +22,3 @@ A sample video on how to use it.
 * [Chess.com](https://www.chess.com/)  
 * [Streamlit](https://github.com/streamlit/streamlit)  
 * [SHAP](https://github.com/slundberg/shap)
-* [Heroku](https://www.heroku.com)
