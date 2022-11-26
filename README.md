@@ -7,9 +7,9 @@ Generates a linear model and use it to predict a rating like chess960 or crazyho
 
 The users are provided with two libraries namely xgboost and statsmodels to create simple and multiple linear regression models. Regression plots are generated when the libary used is statsmodels. There is also SHAP plot to see which features matters most and in what directions and how much it influences the prediction output. 
 
-Data are generated using the [lichess api](https://lichess.org/api) and both the [official](https://www.chess.com/news/view/published-data-api) and [unofficial](https://www.chess.com/clubs/forum/view/guide-unofficial-api-documentation) chess.com apis. This web app is written in Python with [Streamlit](https://streamlit.io/) and is hosted by [Heroku](https://www.heroku.com). 
+Data are generated using the [lichess api](https://lichess.org/api) and both the [official](https://www.chess.com/news/view/published-data-api) and [unofficial](https://www.chess.com/clubs/forum/view/guide-unofficial-api-documentation) chess.com apis. This web app is written in Python with [Streamlit](https://streamlit.io/) and is hosted by [streamlit cloud](https://streamlit.io/cloud). 
 
-Heroku link: https://ratingcorrelations.herokuapp.com/
+App link: https://rating-correlations.streamlit.app/
 
 You can run this locally by cloning this repo, install the dependents in requirements.txt and execute `streamlit run rating_correlations.py`.
 
