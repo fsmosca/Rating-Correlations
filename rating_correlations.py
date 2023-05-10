@@ -75,12 +75,12 @@ st.markdown(
 MIN_CHESSCOM_CRAZYHOUSE_RD = 200
 
 
-@st.cache
+@st.cache_data
 def convert_df(df):
     return df.to_csv(index=False).encode('utf-8')
 
 
-@st.cache(allow_output_mutation=True)
+@st.cache_data
 def read_file(fn):
     df = pd.read_csv(fn)
     return df
