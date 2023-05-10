@@ -1,7 +1,7 @@
 streamlit
 scikit-learn==1.0.2
-xgboost==1.5.2
+xgboost
 statsmodels
-shap==0.40.0
+shap
 matplotlib
-seaborn==0.11.2
+seaborn
