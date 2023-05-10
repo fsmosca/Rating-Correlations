@@ -1,7 +1,7 @@
 streamlit
 scikit-learn==1.0.2
 xgboost==1.5.2
-statsmodels==0.13.1
+statsmodels
 shap==0.40.0
 matplotlib==3.4.3
 numpy==1.21
